@@ -1,0 +1,21 @@
+[Unit]
+Description=Mare Auth Service
+PartOf=mare.target
+Wants=postgresql.service
+Wants=redis-server.service
+Requires=redis.service
+
+[Service]
+Type=notify
+Restart=on-failure
+User=mare
+RuntimeDirectory=mare-auth
+WorkingDirectory=/opt/mare-server/
+Environment=ASPNETCORE_ENVIRONMENT=MareAuth
+Environment=DOTNET_GCHeapHardLimitPercent=0x28
+Environment=DOTNET_gcServer=0
+ExecStart=/opt/mare-server/MareSynchronosAuthService
+ExecStartPost=chmod go+rw /run/mare-auth/server.sock
+
+[Install]
+WantedBy=mare.target
