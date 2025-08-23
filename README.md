@@ -142,14 +142,14 @@ df -h /mnt/lopcache/
 
 # Building and uploading
 
-You should simply be able to compile [the server software](https://github.com/loporrit/MareServer) on your PC, and then copy the contents of each `bin/Release/net8.0/` directory on to the server.
+You should simply be able to compile [the server software](https://git.lop-sync.com/huggingway/LopServer) on your PC, and then copy the contents of each `bin/Release/net8.0/` directory on to the server.
 
 It is OK to upload the contents of multiple server programs in to the same directory, overwriting the files each time. We will use the directory `/opt/mare-server/` to hold the files for all three required server programs.
 
 For example:
 
 ```sh
-git clone https://github.com/loporrit/MareServer.git
+git clone https://git.lop-sync.com/huggingway/LopServer.git
 cd MareServer
 git submodule update --recursive --init
 cd MareSynchronosServer
