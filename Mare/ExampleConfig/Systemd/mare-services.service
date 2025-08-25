@@ -1,0 +1,16 @@
+[Unit]
+Description=Mare Services
+PartOf=mare.target
+Wants=postgresql.service
+Requires=mare-server.service
+After=mare-server.service
+
+[Service]
+Type=notify
+Restart=on-failure
+User=mare
+Environment=ASPNETCORE_ENVIRONMENT=MareServices
+ExecStart=/opt/mare-server/MareSynchronosServices
+
+[Install]
+WantedBy=mare.target

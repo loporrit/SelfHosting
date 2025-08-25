@@ -1,0 +1,17 @@
+[Unit]
+Description=Mare Files
+PartOf=mare.target
+Wants=postgresql.service
+After=network.target
+
+[Service]
+Type=notify
+Restart=on-failure
+User=mare
+RuntimeDirectory=mare-files
+Environment=ASPNETCORE_ENVIRONMENT=MareFiles
+ExecStart=/opt/mare-server/MareSynchronosStaticFilesServer
+ExecStartPost=chmod go+rw /run/mare-files/server.sock
+
+[Install]
+WantedBy=mare.target

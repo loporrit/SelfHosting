@@ -1,12 +1,19 @@
-# Self-hosting a Loporrit Sync service
+# Self-hosting a Mare Sync service
 
-This assumes you are running some kind of Linux distribution using Systemd for service management. The Docker files available for the LoporritSync server are not maintained and probably do not work.
-
-For self-hosting Mare Synchronos, you should prefer to use Docker instead.
-
-However, if you're interested in a Mare-flavored setup guide which does not use docker, [I added one here](https://github.com/loporrit/SelfHosting/tree/main/Mare)!
+This assumes you are running some kind of Linux distribution using Systemd for service management. The Docker files available are NOT used. If you prefer to run Docker, do not follow this guide.
 
 The examples here will assume a single server will be responsible for running both the main server as well as the file server. This is probably OK for services with less than 1000 concurrent users.
+
+## Some notes about Mare
+
+* Mare's cache file format is not compatible with Loporrit, due to using a different file compression format.
+* The databases are not compatible.
+* The clients are not compatible with each-others' servers.
+* Mare requires that you accept websocket connections directly on the domain specified in the `wss://` server URL.
+* Mare does not support the use of cold storage on sharded file-servers.
+* There are some small configuration differences, and additional endpoints must be configured.
+* Registering an account on a Mare server is only possible via Discord, and requires lodestone authentication. You will not be able to easily test the service until you get the Discord bot up and running to register an account.
+* Thus, setting up a Discord bot (and ideally also Discord OAuth application) is required without extensive code changes. Discord bot service for Loporrit is only useful for sending admin messages and handling profile reports.
 
 # Pre-requisites
 
@@ -24,11 +31,13 @@ Additional disk space and network bandwidth will result in a beter experience fo
 
 It may be possible to take advantage of fast HDD arrays as *cold storage*, or use a hybrid array using SSDs as a caching layer, but it may be better to simply rely on users needing to re-upload files more often than to try to make use of HDDs.
 
-You should *not* run the service through CloudFlare, as it violates their terms of service and is very likely to show suspiciously high network transfer.
+You should *not* run the service through CloudFlare, as it violates their terms of service and is very likely to show suspiciously high network transfer. They also restrict the number of concurrent websocket connections for free users.
 
 You should also have a domain name that you can rely on to keep for many years. This will be used to connect to your server and it is not possible to change it later.
 
 For example, if you register the domain `example.sync`, you will connect to your service using: `wss://example.sync`
+
+**Mare Warning:** in particular, you may wish to use a sub-domain, not your primary domain, so that you are free to use Cloudflare or another CDN for your primary website.
 
 ## 1. Install required software: nginx, Redis, and PostgreSQL
 
@@ -108,9 +117,9 @@ I also recommend having some kind of rate limiting policy configured in nginx, a
 
 ## 2. Install .NET and ASP.NET runtime from Microsoft's custom repository following the instructions here:
 
-https://learn.microsoft.com/en-us/dotnet/core/install/linux-debian?tabs=dotnet8
+https://learn.microsoft.com/en-us/dotnet/core/install/linux-debian?tabs=dotnet9
 
-Either .NET 8 or .NET 9 runtime will work, but .NET 8 has a longer support lifecycle.
+At least .NET 9 is required, but .NET 10 should be used as soon as its released and stable.
 
 ## 3. Create a database and user account
 
@@ -131,64 +140,76 @@ Note: `MareSynchronosServer` will initialize the database when it is started for
 This should be somewhere there is adequate space. Take note of the space available for later.
 
 ```sh
-mkdir /mnt/lopcache/
-for x in 0 1 2 3 4 5 6 7 8 9 A B C D E F; do mkdir /mnt/lopcache/$x; done
-chown -R mare:mare /mnt/lopcache/
+mkdir /mnt/marecache/
+for x in 0 1 2 3 4 5 6 7 8 9 A B C D E F; do mkdir /mnt/marecache/$x; done
+chown -R mare:mare /mnt/marecache/
 ```
 
 Check available disk space after:
 
 ```
-df -h /mnt/lopcache/
+df -h /mnt/marecache/
 ```
 
 # Building and uploading
 
-You should simply be able to compile [the server software](https://git.lop-sync.com/huggingway/LopServer) on your PC, and then copy the contents of each `bin/Release/net8.0/` directory on to the server.
+You should simply be able to compile the server software on your PC, and then copy the contents of each `bin/Release/net9.0/` directory on to the server.
 
 It is OK to upload the contents of multiple server programs in to the same directory, overwriting the files each time. We will use the directory `/opt/mare-server/` to hold the files for all three required server programs.
 
 For example:
 
 ```sh
-git clone https://git.lop-sync.com/huggingway/LopServer.git
-cd MareServer
-git submodule update --recursive --init
 cd MareSynchronosServer
 dotnet build --configuration Release
-scp -rp MareSynchronosServer/bin/Release/net8.0/ root@example.sync:/opt/mare-server/
-scp -rp MareSynchronosAuthService/bin/Release/net8.0/ root@example.sync:/opt/mare-server/
-scp -rp MareSynchronosStaticFilesServer/bin/Release/net8.0/ root@example.sync:/opt/mare-server/
-scp -rp MareSynchronosServices/bin/Release/net8.0/ root@example.sync:/opt/mare-server/
+scp -rp MareSynchronosServer/bin/Release/net9.0/ root@example.sync:/opt/mare-server/
+scp -rp MareSynchronosAuthService/bin/Release/net9.0/ root@example.sync:/opt/mare-server/
+scp -rp MareSynchronosStaticFilesServer/bin/Release/net9.0/ root@example.sync:/opt/mare-server/
+scp -rp MareSynchronosServices/bin/Release/net9.0/ root@example.sync:/opt/mare-server/
 ```
+
+**Mare Warning:** AuthService will, by default, copy an `appsettings.json` file in to the build output folder. This issue is addressed in suggested code patches at the bottom of this document.
 
 # Configuration
 
-The server is configured using the file `/opt/mare-server/appsettings.json`.
+The server would normally be configured using the file `/opt/mare-server/appsettings.json`.
 
-We take advantage of the `ASPNETCORE_ENVIRONMENT` feature to have additional configuration files read per-service as well:
+We take advantage of the `ASPNETCORE_ENVIRONMENT` feature to use named configuration files per-service, read from the same directory, instead:
 
 * `/opt/mare-server/appsettings.MareAuth.json`
 * `/opt/mare-server/appsettings.MareServer.json`
 * `/opt/mare-server/appsettings.MareFiles.json`
-* `/opt/mare-server/appsettings.MareServices.json` (discord bot, optional)
+* `/opt/mare-server/appsettings.MareServices.json` (discord bot)
 
 The options in each of these will be applied in addition to the base configuration from `appsettings.json`.
 
 Copy the initial configuration files in `/opt/mare-server/` on your server from these examples:
 
-* https://github.com/loporrit/SelfHosting/tree/main/ExampleConfig/MareConfig
+* https://github.com/loporrit/SelfHosting/tree/main/Mare/ExampleConfig/MareConfig
 
 **IMPORTANT: You will need to, at minimum, edit the following options:**
 
-- **appsettings.json**:
+- **All appsetting.json files**:
   - **Jwt**: This should be a randomly generated / face-rolled string, unique to be server. Keep it secret. It authenticates connections between your server processes.
   - **CdnFullUrl**: Should be the URL to your website, e.g `https://example.sync/`
+
+- **appsettings.MareAuth.json**:
+  - **PublicOAuthBaseUrl**: If you want to use oauth: `https://example.sync/oauth/` with the trailing slash
+  - **DiscordOAuthClientSecret**: Discord OAuth app client secret...
+  - **DiscordOAuthClientId**: And the Disord OAuth app client ID
 
 - **appsettings.MareFiles.json**:
   - **CacheDirectory**: Make sure this matches the cache directory location you created before
   - **CacheSizeHardLimitInGiB**: This should be less than the disk space available. e.g. if you have 150GB of space available, consider setting this to 120.
-  - **UseXAccelRedirect** / **UseSSI**: These should be disabled if you are not using nginx with the recommended configuration
+
+- **appsettings.MareServices.json**:
+  - **DiscordBotToken**: The secret token for your discord bot
+  - **DiscordChannelForMessages**: Discord channel ID that the bot will post its account management/registration embed to. Make it public but don't let people send mesages.
+  - **DiscordChannelForCommands**: Discord channel ID for running bot commands. Should be private for admins and the bot only.
+  - **DiscordRoleRegistered**: Optional, but a role ID for the bot to assign to users who register :)
+  - **VanityRoles**: If this is left empty anyone can assign vanity IDs via the bot. Its a json dict of `{"RoleID":"Role Name"}`.
+
+**Mare Warning:** The example configuratons provided with the official Mare docker examples do not assign a port number for AuthService, causing it to conflict with the Discord bot by default. This issue is addressed in suggested code patches at the bottom of this document.
 
 You should be able to test the configuration with the following command. This first execution is also important to initialize the database:
 
@@ -247,7 +268,7 @@ The final step is to enable connecting to the server processes via your webserve
 
 Copy the following files to `/etc/nginx/` on your server from these examples:
 
-* https://github.com/loporrit/SelfHosting/tree/main/ExampleConfig/nginx
+* https://github.com/loporrit/SelfHosting/tree/main/Mare/ExampleConfig/nginx
 
 Finally, edit the website config file `/etc/nginx/sites-enabled/example.sync.conf` created previously, and **un-comment the four previously added `include` directives**, e.g.:
 
@@ -274,4 +295,78 @@ server {
 At this point it should be possible to connect to the service by setting the service url to `wss://example.sync`.
 
 Check `/xllog` in-game, and the server log files documented above to diagnose any issues.
+
+# Setting up Discord
+
+You need a bot which can post in channels (give it Send Messages and Use Application Commands permissions -- also Assign Roles and Kick Members if you want either of those things). You also need an oauth thingy if you want oauth to work. The redirect URL should be `https://example.sync/oauth/discordCallback`
+
+... Good luck!
+
+# Recommended Code Patches
+
+## 1. Remove MareSynchronosServerTest
+
+```diff
+--- a/MareSynchronosServer/MareSynchronosServer.sln
++++ b/MareSynchronosServer/MareSynchronosServer.sln
+@@ -7,8 +7,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MareSynchronosServer", "Mar
+ EndProject
+ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MareSynchronos.API", "..\MareAPI\MareSynchronosAPI\MareSynchronos.API.csproj", "{326BFB1B-5571-47A6-8513-1FFDB32D53B0}"
+ EndProject
+-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MareSynchronosServerTest", "MareSynchronosServerTest\MareSynchronosServerTest.csproj", "{25A82A2A-35C2-4EE0-A0E8-DFDD77978DDA}"
+-EndProject
+ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MareSynchronosShared", "MareSynchronosShared\MareSynchronosShared.csproj", "{67B1461D-E215-4BA8-A64D-E1836724D5E6}"
+ EndProject
+ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MareSynchronosStaticFilesServer", "MareSynchronosStaticFilesServer\MareSynchronosStaticFilesServer.csproj", "{3C7F43BB-FE4C-48BC-BF42-D24E70E8FCB7}"
+@@ -36,10 +34,6 @@ Global
+                {326BFB1B-5571-47A6-8513-1FFDB32D53B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+                {326BFB1B-5571-47A6-8513-1FFDB32D53B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+                {326BFB1B-5571-47A6-8513-1FFDB32D53B0}.Release|Any CPU.Build.0 = Release|Any CPU
+-               {25A82A2A-35C2-4EE0-A0E8-DFDD77978DDA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+-               {25A82A2A-35C2-4EE0-A0E8-DFDD77978DDA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+-               {25A82A2A-35C2-4EE0-A0E8-DFDD77978DDA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+-               {25A82A2A-35C2-4EE0-A0E8-DFDD77978DDA}.Release|Any CPU.Build.0 = Release|Any CPU
+                {67B1461D-E215-4BA8-A64D-E1836724D5E6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+                {67B1461D-E215-4BA8-A64D-E1836724D5E6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+                {67B1461D-E215-4BA8-A64D-E1836724D5E6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+```
+
+Removing this from the solution is required to build, as the code is no longer working.
+
+## 2. Remove UseConsoleLifetime()
+
+```diff
+         return Host.CreateDefaultBuilder(args)
+             .UseSystemd()
+-            .UseConsoleLifetime()
+             .ConfigureAppConfiguration((ctx, config) =>
+             {
+```
+
+This appears in `Program.cs` for all four server programs. Removing UseConsoleLifetime is required for systemd to function correctly.
+
+## 3. Exclude appsettings.json from AuthService build
+
+```diff
+--- a/MareSynchronosServer/MareSynchronosAuthService/MareSynchronosAuthService.csproj
++++ b/MareSynchronosServer/MareSynchronosAuthService/MareSynchronosAuthService.csproj
+@@ -6,6 +6,18 @@
+     <ImplicitUsings>enable</ImplicitUsings>
+   </PropertyGroup>
+ 
++  <ItemGroup>
++    <Content Remove="appsettings.Development.json" />
++    <Content Remove="appsettings.json" />
++  </ItemGroup>
++
++  <ItemGroup>
++    <None Include="appsettings.Development.json" />
++    <None Include="appsettings.json">
++      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
++    </None>
++  </ItemGroup>
++
+```
+
+This excludes a dummy appsettings.json file getting copied in to your build output / publish directory, which may potentially clobber your existing configuration!
 

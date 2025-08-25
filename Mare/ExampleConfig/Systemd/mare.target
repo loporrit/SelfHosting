@@ -1,0 +1,6 @@
+[Unit]
+Description=Mare Synchronos
+After=network.target
+
+[Install]
+WantedBy=multi-user.target
