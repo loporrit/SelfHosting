@@ -25,11 +25,12 @@ Firstly, you should have a server available with adequate specs
 |-|-|-|-|-|-|
 | 1-50  | 10-20 | 10-50 GB | 1 GB+ | 100 Mbit+ | 1 - 10 TB |
 | 10-1000 | 100-200 | 100-500 GB | 2 GB+ | 100 - 500 MBit+ | 10 - 50 TB |
-| 1000+ | 200+ | 300-1000 GB | 4-8 GB+ | 500 - 1000 MBit+ | 100 TB + |
+| 1000+ | 200+ | 300-1000 GB | 4-8 GB+ | 500 - 1000 MBit+ | 50 TB + |
+| 5000+ | 1000+ | 1000 GB+ | 8-16 GB+ | 1000 MBit+ | 150 TB + |
 
-Additional disk space and network bandwidth will result in a beter experience for users, but too much will increase RAM requirements for no little benefit. Exact requirements will vary depending on the differences in user behavior.
+Additional disk space and network bandwidth will result in a better experience for users, but too much will increase RAM requirements for no little benefit. Exact requirements will vary depending on the differences in user behavior.
 
-It may be possible to take advantage of fast HDD arrays as *cold storage*, or use a hybrid array using SSDs as a caching layer, but it may be better to simply rely on users needing to re-upload files more often than to try to make use of HDDs.
+It may be possible to take advantage of fast HDD arrays as *cold storage*, or use a hybrid array using SSDs as a caching layer, but it may be better to simply rely on users needing to re-upload files more often than to try to make use of slower HDDs.
 
 You should *not* run the service through CloudFlare, as it violates their terms of service and is very likely to show suspiciously high network transfer. They also restrict the number of concurrent websocket connections for free users.
 
