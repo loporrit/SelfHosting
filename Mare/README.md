@@ -9,11 +9,11 @@ The examples here will assume a single server will be responsible for running bo
 * Mare's cache file format is not compatible with Loporrit, due to using a different file compression format.
 * The databases are not compatible.
 * The clients are not compatible with each-others' servers.
-* Mare requires that you accept websocket connections directly on the domain specified in the `wss://` server URL.
+* Mare requires that you accept hub connections directly on the domain specified in the `wss://` server URL.
 * Mare does not support the use of cold storage on sharded file-servers.
 * There are some small configuration differences, and additional endpoints must be configured.
 * Registering an account on a Mare server is only possible via Discord, and requires lodestone authentication. You will not be able to easily test the service until you get the Discord bot up and running to register an account.
-* Thus, setting up a Discord bot (and ideally also Discord OAuth application) is required without extensive code changes. Discord bot service for Loporrit is only useful for sending admin messages and handling profile reports.
+* Thus, setting up a Discord bot (and ideally also Discord OAuth application) is required without extensive code changes. (The discord bot service for Loporrit is only useful for sending admin messages and handling profile reports.)
 
 # Pre-requisites
 
@@ -40,6 +40,8 @@ For example, if you register the domain `example.sync`, you will connect to your
 
 **Mare Warning:** in particular, you may wish to use a sub-domain, not your primary domain, so that you are free to use Cloudflare or another CDN for your primary website.
 
+**Old OS Warning**: I have assumed that `/var/run/` is the same directory as `/run/`. This is not the case on some older versions (e.g. Debian 11). You may need to adjust file paths in this case.
+
 ## 1. Install required software: nginx, Redis, and PostgreSQL
 
 Examples here will assume your server is running Debian:
@@ -49,7 +51,7 @@ apt install nginx postgresql redis
 systemctl start nginx postgresql redis
 ```
 
-It is possible to use a webserver other than nginx, however the sample configuration here is for nginx, and LoporritSync has an optimized file transfer mode which depends on nginx.
+It is possible to use a webserver other than nginx, however the sample configuration here is for nginx.
 
 ## 1a. Set up a website and install certbot
 
@@ -210,7 +212,7 @@ Copy the initial configuration files in `/opt/mare-server/` on your server from 
   - **DiscordRoleRegistered**: Optional, but a role ID for the bot to assign to users who register :)
   - **VanityRoles**: If this is left empty anyone can assign vanity IDs via the bot. Its a json dict of `{"RoleID":"Role Name"}`.
 
-**Mare Warning:** The example configuratons provided with the official Mare docker examples do not assign a port number for AuthService, causing it to conflict with the Discord bot by default. This issue is addressed in suggested code patches at the bottom of this document.
+**Mare Warning:** The example configuratons provided with the official Mare docker examples do not assign a port number for AuthService, causing it to conflict with the Discord bot by default. This issue is addressed in our example configuration files.
 
 You should be able to test the configuration with the following command. This first execution is also important to initialize the database:
 

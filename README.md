@@ -31,6 +31,8 @@ You should also have a domain name that you can rely on to keep for many years. 
 
 For example, if you register the domain `example.sync`, you will connect to your service using: `wss://example.sync`
 
+**Old OS Warning**: I have assumed that `/var/run/` is the same directory as `/run/`. This is not the case on some older versions (e.g. Debian 11). You may need to adjust file paths in this case.
+
 ## 1. Install required software: nginx, Redis, and PostgreSQL
 
 Examples here will assume your server is running Debian:
