@@ -23,10 +23,10 @@ Firstly, you should have a server available with adequate specs
 
 | Users | Peak Online | SSD | RAM | Net speed | Monthly Transfer |
 |-|-|-|-|-|-|
-| 1-50  | 10-20 | 10-50 GB | 1 GB+ | 100 Mbit+ | 1 - 10 TB |
-| 10-1000 | 100-200 | 100-500 GB | 2 GB+ | 100 - 500 MBit+ | 10 - 50 TB |
-| 1000+ | 200+ | 300-1000 GB | 4-8 GB+ | 500 - 1000 MBit+ | 50 TB + |
-| 5000+ | 1000+ | 1000 GB+ | 8-16 GB+ | 1000 MBit+ | 150 TB + |
+| 1-100 | 10-20 | 10-50 GB | 1 GB+ | 100 Mbit+ | 1 TB |
+| 100-1000 | 100-200 | 100-500 GB | 2 GB+ | 100 - 500 MBit+ | 5 - 30 TB |
+| 1000+ | 200+ | 300-1000 GB | 4 GB+ | 500 - 1000 MBit+ | 30 TB + |
+| 5000+ | 1000+ | 1000 GB+ | 8 GB+ | 1000 MBit+ | 100 TB + |
 
 Additional disk space and network bandwidth will result in a better experience for users, but too much will increase RAM requirements for no little benefit. Exact requirements will vary depending on the differences in user behavior.
 

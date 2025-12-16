@@ -16,10 +16,10 @@ Firstly, you should have a server available with adequate specs
 
 | Users | Peak Online | SSD | RAM | Net speed | Monthly Transfer |
 |-|-|-|-|-|-|
-| 1-50  | 10-20 | 10-50 GB | 1 GB+ | 100 Mbit+ | 1 - 10 TB |
-| 10-1000 | 100-200 | 100-500 GB | 2 GB+ | 100 - 500 MBit+ | 10 - 50 TB |
-| 1000+ | 200+ | 300-1000 GB | 4-8 GB+ | 500 - 1000 MBit+ | 50 TB + |
-| 5000+ | 1000+ | 1000 GB+ | 8-16 GB+ | 1000 MBit+ | 150 TB + |
+| 1-100 | 10-20 | 10-50 GB | 1 GB+ | 100 Mbit+ | 1 TB |
+| 100-1000 | 100-200 | 100-500 GB | 2 GB+ | 100 - 500 MBit+ | 5 - 30 TB |
+| 1000+ | 200+ | 300-1000 GB | 4 GB+ | 500 - 1000 MBit+ | 30 TB + |
+| 5000+ | 1000+ | 1000 GB+ | 8 GB+ | 1000 MBit+ | 100 TB + |
 
 Additional disk space and network bandwidth will result in a better experience for users, but too much will increase RAM requirements for no little benefit. Exact requirements will vary depending on the differences in user behavior.
 
@@ -109,11 +109,9 @@ For good download speeds for high latency users, also look in to optimizing the 
 
 I also recommend having some kind of rate limiting policy configured in nginx, as well.
 
-## 2. Install .NET and ASP.NET runtime from Microsoft's custom repository following the instructions here:
+## 2. Install .NET 10 and ASP.NET runtime from Microsoft's custom repository following the instructions here:
 
-https://learn.microsoft.com/en-us/dotnet/core/install/linux-debian?tabs=dotnet8
-
-Either .NET 8 or .NET 9 runtime will work, but .NET 8 has a longer support lifecycle.
+https://learn.microsoft.com/en-us/dotnet/core/install/linux-debian?tabs=dotnet10
 
 ## 3. Create a database and user account
 
@@ -147,7 +145,7 @@ df -h /mnt/lopcache/
 
 # Building and uploading
 
-You should simply be able to compile [the server software](https://git.lop-sync.com/huggingway/LopServer) on your PC, and then copy the contents of each `bin/Release/net8.0/` directory on to the server.
+You should simply be able to compile [the server software](https://git.lop-sync.com/huggingway/LopServer) on your PC, and then copy the contents of each `bin/Release/net10.0/` directory on to the server.
 
 It is OK to upload the contents of multiple server programs in to the same directory, overwriting the files each time. We will use the directory `/opt/mare-server/` to hold the files for all three required server programs.
 
@@ -159,10 +157,10 @@ cd MareServer
 git submodule update --recursive --init
 cd MareSynchronosServer
 dotnet build --configuration Release
-scp -rp MareSynchronosServer/bin/Release/net8.0/ root@example.sync:/opt/mare-server/
-scp -rp MareSynchronosAuthService/bin/Release/net8.0/ root@example.sync:/opt/mare-server/
-scp -rp MareSynchronosStaticFilesServer/bin/Release/net8.0/ root@example.sync:/opt/mare-server/
-scp -rp MareSynchronosServices/bin/Release/net8.0/ root@example.sync:/opt/mare-server/
+scp -rp MareSynchronosServer/bin/Release/net10.0/ root@example.sync:/opt/mare-server/
+scp -rp MareSynchronosAuthService/bin/Release/net10.0/ root@example.sync:/opt/mare-server/
+scp -rp MareSynchronosStaticFilesServer/bin/Release/net10.0/ root@example.sync:/opt/mare-server/
+scp -rp MareSynchronosServices/bin/Release/net10.0/ root@example.sync:/opt/mare-server/
 ```
 
 # Configuration
